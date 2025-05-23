@@ -1,3 +1,5 @@
+package Tasks;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +89,7 @@ public class Task {
 
     @Override
     public String toString() {
-        return "Task{" +
+        return "Tasks.Task{" +
                 "name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", id=" + id +

@@ -1,3 +1,8 @@
+import Tasks.Epic;
+import Tasks.Status;
+import Tasks.Subtask;
+import Tasks.Task;
+
 public class Main {
     public static void main(String[] args) {
         // Создаем обычные задачи
