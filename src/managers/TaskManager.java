@@ -1,4 +1,8 @@
-package tasks;
+package managers;
+
+import model.Epic;
+import model.Subtask;
+import model.Task;
 
 import java.util.List;
 

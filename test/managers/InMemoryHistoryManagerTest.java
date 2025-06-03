@@ -1,6 +1,10 @@
-package tasks;
+package managers;
 
 
+import model.Epic;
+import model.Managers;
+import model.Status;
+import model.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.List;

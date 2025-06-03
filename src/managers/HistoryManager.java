@@ -1,4 +1,6 @@
-package tasks;
+package managers;
+
+import model.Task;
 
 import java.util.List;
 

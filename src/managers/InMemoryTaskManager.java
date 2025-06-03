@@ -1,4 +1,6 @@
-package tasks;
+package managers;
+
+import model.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
