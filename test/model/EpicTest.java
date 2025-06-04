@@ -21,10 +21,10 @@ class EpicTest {
 
     @Test
     void epicEqualityById() {
-        Epic e1 = new Epic("E", "D");
-        Epic e2 = new Epic("E", "D");
-        e1.setId(5);
-        e2.setId(5);
-        assertEquals(e1, e2);
+        Epic epic1 = new Epic("E", "D");
+        Epic epic2 = new Epic("E", "D");
+        epic1.setId(5);
+        epic2.setId(5);
+        assertEquals(epic1, epic2);
     }
 }

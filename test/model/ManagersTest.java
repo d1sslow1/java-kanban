@@ -16,7 +16,7 @@ class ManagersTest {
     }
 
     @Test
-    void getDefaultHistoryShouldReturnInitializedHistoryManager() {
+    void getDefaultHiShouldRetInitializedHiManager() {
         HistoryManager historyManager = Managers.getDefaultHistory();
         assertNotNull(historyManager);
 
