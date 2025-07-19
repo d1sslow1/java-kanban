@@ -1,7 +1,6 @@
 package managers;
 
 import model.Task;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,7 @@ public class InMemoryHistoryManager implements HistoryManager {
 
     private Node head;
     private Node tail;
-    private final Map<Integer, Node> historyMap = new HashMap<>();
+    private final Map<Integer, Node> nodeMap = new HashMap<>();
 
     @Override
     public void add(Task task) {
@@ -31,14 +30,16 @@ public class InMemoryHistoryManager implements HistoryManager {
         }
 
         int id = task.getId();
-        remove(id); // Удаляем существующую задачу, если есть
+        if (nodeMap.containsKey(id)) {
+            removeNode(nodeMap.get(id));
+        }
 
         linkLast(task);
     }
 
     @Override
     public void remove(int id) {
-        Node node = historyMap.remove(id);
+        Node node = nodeMap.remove(id);
         if (node != null) {
             removeNode(node);
         }
@@ -63,7 +64,7 @@ public class InMemoryHistoryManager implements HistoryManager {
             tail.next = newNode;
         }
         tail = newNode;
-        historyMap.put(task.getId(), newNode);
+        nodeMap.put(task.getId(), newNode);
     }
 
     private void removeNode(Node node) {

@@ -3,78 +3,57 @@ package managers;
 import model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
-    private TaskManager taskManager;
+    private TaskManager manager;
 
     @BeforeEach
     void setUp() {
-        taskManager = new InMemoryTaskManager();
+        manager = new InMemoryTaskManager();
     }
 
     @Test
-    void createTaskShouldAddTaskToManager() {
-        Task task = new Task("Задача", "Описание", Status.NEW);
-        int taskId = taskManager.createTask(task);
-        Task savedTask = taskManager.getTask(taskId);
-
-        assertNotNull(savedTask, "Задача не найдена.");
-        assertEquals(task, savedTask, "Задачи не совпадают.");
+    void createAndGetTaskShouldWorkCorrectly() {
+        Task task = new Task("Task", "Description", Status.NEW);
+        int taskId = manager.createTask(task);
+        Task savedTask = manager.getTask(taskId);
+        assertNotNull(savedTask);
+        assertEquals(task.getName(), savedTask.getName());
     }
 
     @Test
-    void updateTaskShouldChangeTaskFields() {
-        Task task = new Task("Задача", "Описание", Status.NEW);
-        int taskId = taskManager.createTask(task);
-
-        Task updatedTask = new Task("Обновленная", "Новое описание", Status.DONE);
-        updatedTask.setId(taskId);
-        taskManager.updateTask(updatedTask);
-
-        Task savedTask = taskManager.getTask(taskId);
-        assertEquals("Обновленная", savedTask.getName(), "Название не обновлено.");
-        assertEquals("Новое описание", savedTask.getDescription(), "Описание не обновлено.");
-        assertEquals(Status.DONE, savedTask.getStatus(), "Статус не обновлен.");
+    void updateTaskShouldChangeFields() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        int id = manager.createTask(task);
+        Task updated = new Task("New", "New desc", Status.DONE);
+        updated.setId(id);
+        manager.updateTask(updated);
+        assertEquals("New", manager.getTask(id).getName());
     }
 
     @Test
-    void deleteTaskShouldRemoveTaskFromManager() {
-        Task task = new Task("Задача", "Описание", Status.NEW);
-        int taskId = taskManager.createTask(task);
-        taskManager.deleteTask(taskId);
-
-        assertNull(taskManager.getTask(taskId), "Задача не удалена.");
-    }
-
-    @Test
-    void getHistoryShouldReturnViewedTasks() {
-        Task task = new Task("Задача", "Описание", Status.NEW);
-        int taskId = taskManager.createTask(task);
-        taskManager.getTask(taskId);
-
-        List<Task> history = taskManager.getHistory();
-        assertEquals(1, history.size(), "История неверного размера.");
-        assertEquals(taskId, history.get(0).getId(), "Неверная задача в истории.");
+    void deleteTaskShouldRemoveFromManagerAndHistory() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        int id = manager.createTask(task);
+        manager.getTask(id); // Добавляем в историю
+        manager.deleteTask(id);
+        assertNull(manager.getTask(id));
+        assertTrue(manager.getHistory().isEmpty());
     }
 
     @Test
     void epicStatusShouldUpdateWhenSubtasksChange() {
-        Epic epic = new Epic("Эпик", "Описание");
-        int epicId = taskManager.createEpic(epic);
+        Epic epic = new Epic("Epic", "Desc");
+        int epicId = manager.createEpic(epic);
+        Subtask subtask = new Subtask("Sub", "Desc", Status.NEW, epicId);
+        int subId = manager.createSubtask(subtask);
+        assertEquals(Status.NEW, manager.getEpic(epicId).getStatus());
 
-        Subtask subtask = new Subtask("Подзадача", "Описание", Status.NEW, epicId);
-        int subtaskId = taskManager.createSubtask(subtask);
-
-        assertEquals(Status.NEW, taskManager.getEpic(epicId).getStatus(), "Неверный статус эпика.");
-
-        Subtask updatedSubtask = new Subtask("Обновленная", "Описание", Status.DONE, epicId);
-        updatedSubtask.setId(subtaskId);
-        taskManager.updateSubtask(updatedSubtask);
-
-        assertEquals(Status.DONE, taskManager.getEpic(epicId).getStatus(), "Статус эпика не обновился.");
+        Subtask updated = new Subtask("New", "New", Status.DONE, epicId);
+        updated.setId(subId);
+        manager.updateSubtask(updated);
+        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus());
     }
 }

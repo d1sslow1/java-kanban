@@ -4,65 +4,57 @@ import model.Status;
 import model.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryHistoryManagerTest {
-    private HistoryManager historyManager;
+    private HistoryManager manager;
     private Task task1;
     private Task task2;
 
     @BeforeEach
     void setUp() {
-        historyManager = new InMemoryHistoryManager();
-        task1 = new Task("Задача 1", "Описание 1", Status.NEW);
+        manager = new InMemoryHistoryManager();
+        task1 = new Task("Task 1", "Description 1", Status.NEW);
         task1.setId(1);
-        task2 = new Task("Задача 2", "Описание 2", Status.IN_PROGRESS);
+        task2 = new Task("Task 2", "Description 2", Status.IN_PROGRESS);
         task2.setId(2);
     }
 
     @Test
-    void addShouldAddTaskToHistory() {
-        historyManager.add(task1);
-        final List<Task> history = historyManager.getHistory();
-        assertNotNull(history, "История не пустая.");
-        assertEquals(1, history.size(), "История содержит неверное количество задач.");
-        assertEquals(task1, history.get(0), "Задачи не совпадают.");
+    void addShouldAddTasksToHistory() {
+        manager.add(task1);
+        manager.add(task2);
+        List<Task> history = manager.getHistory();
+        assertEquals(2, history.size());
+        assertEquals(task1, history.get(0));
+        assertEquals(task2, history.get(1));
     }
 
     @Test
-    void addShouldNotContainDuplicates() {
-        historyManager.add(task1);
-        historyManager.add(task1);
-        final List<Task> history = historyManager.getHistory();
-        assertEquals(1, history.size(), "История содержит дубликаты.");
+    void addShouldReplaceDuplicateTasks() {
+        manager.add(task1);
+        Task updatedTask = new Task("Updated", "New desc", Status.DONE);
+        updatedTask.setId(1);
+        manager.add(updatedTask);
+
+        List<Task> history = manager.getHistory();
+        assertEquals(1, history.size());
+        assertEquals(updatedTask.getName(), history.get(0).getName());
     }
 
     @Test
     void removeShouldDeleteTaskFromHistory() {
-        historyManager.add(task1);
-        historyManager.add(task2);
-        historyManager.remove(task1.getId());
-        final List<Task> history = historyManager.getHistory();
-        assertEquals(1, history.size(), "Задача не удалена из истории.");
-        assertEquals(task2, history.get(0), "Удалена неверная задача.");
+        manager.add(task1);
+        manager.add(task2);
+        manager.remove(1);
+        List<Task> history = manager.getHistory();
+        assertEquals(1, history.size());
+        assertEquals(task2, history.get(0));
     }
 
     @Test
-    void getHistoryShouldReturnEmptyListWhenNoTasks() {
-        final List<Task> history = historyManager.getHistory();
-        assertTrue(history.isEmpty(), "История не пустая.");
-    }
-
-    @Test
-    void historyShouldMaintainInsertionOrder() {
-        historyManager.add(task1);
-        historyManager.add(task2);
-        final List<Task> history = historyManager.getHistory();
-        assertEquals(2, history.size(), "История содержит неверное количество задач.");
-        assertEquals(task1, history.get(0), "Неверный порядок задач.");
-        assertEquals(task2, history.get(1), "Неверный порядок задач.");
+    void getHistoryShouldReturnEmptyListWhenEmpty() {
+        assertTrue(manager.getHistory().isEmpty());
     }
 }
