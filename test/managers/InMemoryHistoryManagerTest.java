@@ -1,48 +1,68 @@
 package managers;
 
-
-import model.Epic;
-import model.Managers;
 import model.Status;
 import model.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
-    private Task task;
-    private Epic epic;
+    private Task task1;
+    private Task task2;
 
     @BeforeEach
     void setUp() {
-        historyManager = Managers.getDefaultHistory();
-        task = new Task("Task", "Desc", Status.NEW);
-        task.setId(1);
-        epic = new Epic("Epic", "Epic Desc");
-        epic.setId(2);
+        historyManager = new InMemoryHistoryManager();
+        task1 = new Task("Задача 1", "Описание 1", Status.NEW);
+        task1.setId(1);
+        task2 = new Task("Задача 2", "Описание 2", Status.IN_PROGRESS);
+        task2.setId(2);
     }
 
     @Test
-    void shouldAddTasksToHistory() {
-        historyManager.add(task);
-        historyManager.add(epic);
-
+    void addShouldAddTaskToHistory() {
+        historyManager.add(task1);
         final List<Task> history = historyManager.getHistory();
-        assertEquals(2, history.size(), "History size incorrect");
-        assertEquals(task, history.get(0), "Tasks don't match");
+        assertNotNull(history, "История не пустая.");
+        assertEquals(1, history.size(), "История содержит неверное количество задач.");
+        assertEquals(task1, history.get(0), "Задачи не совпадают.");
     }
 
     @Test
-    void shouldNotExceedMaxSize() {
-        for (int i = 0; i < 15; i++) {
-            Task t = new Task("Task" + i, "Desc", Status.NEW);
-            t.setId(i);
-            historyManager.add(t);
-        }
+    void addShouldNotContainDuplicates() {
+        historyManager.add(task1);
+        historyManager.add(task1);
+        final List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "История содержит дубликаты.");
+    }
 
-        assertEquals(10, historyManager.getHistory().size(),
-                "History should be limited to 10 items");
+    @Test
+    void removeShouldDeleteTaskFromHistory() {
+        historyManager.add(task1);
+        historyManager.add(task2);
+        historyManager.remove(task1.getId());
+        final List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "Задача не удалена из истории.");
+        assertEquals(task2, history.get(0), "Удалена неверная задача.");
+    }
+
+    @Test
+    void getHistoryShouldReturnEmptyListWhenNoTasks() {
+        final List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История не пустая.");
+    }
+
+    @Test
+    void historyShouldMaintainInsertionOrder() {
+        historyManager.add(task1);
+        historyManager.add(task2);
+        final List<Task> history = historyManager.getHistory();
+        assertEquals(2, history.size(), "История содержит неверное количество задач.");
+        assertEquals(task1, history.get(0), "Неверный порядок задач.");
+        assertEquals(task2, history.get(1), "Неверный порядок задач.");
     }
 }
