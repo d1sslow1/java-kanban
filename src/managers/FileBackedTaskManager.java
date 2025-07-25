@@ -44,10 +44,11 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
             if (lines.length <= 1) return;
 
-            for (int i = 1; i < lines.length; i++) {
-                if (lines[i].isEmpty()) continue;
+            for (int lineNumber = 1; lineNumber < lines.length; lineNumber++) {
+                String currentLine = lines[lineNumber];
+                if (currentLine.isEmpty()) continue;
 
-                Task task = taskFromCSV(lines[i]);
+                Task task = taskFromCSV(currentLine);
                 if (task != null) {
                     if (task instanceof Epic) {
                         super.createEpic((Epic) task);
@@ -78,8 +79,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 epicId);
     }
 
-    private Task taskFromCSV(String value) {
-        String[] parts = value.split(",");
+    private Task taskFromCSV(String csvLine) {
+        String[] parts = csvLine.split(",");
         if (parts.length < 6) return null;
 
         int id = Integer.parseInt(parts[0]);
