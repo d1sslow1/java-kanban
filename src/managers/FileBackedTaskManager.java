@@ -1,11 +1,8 @@
 package managers;
 
 import model.*;
-
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
     private final File file;
@@ -45,7 +42,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             String content = Files.readString(file.toPath());
             String[] lines = content.split("\n");
 
-            if (lines.length <= 1) return; // Пропускаем заголовок и пустые файлы
+            if (lines.length <= 1) return;
 
             for (int i = 1; i < lines.length; i++) {
                 if (lines[i].isEmpty()) continue;
@@ -90,7 +87,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         String name = parts[2];
         Status status = Status.valueOf(parts[3]);
         String description = parts[4];
-        String epicId = parts.length > 5 ? parts[5] : "";
+        String epicId = parts[5];
 
         switch (type) {
             case "TASK":
@@ -112,8 +109,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 return null;
         }
     }
-
-    // Переопределения методов с сохранением
 
     @Override
     public int createTask(Task task) {
@@ -191,11 +186,9 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     public static void main(String[] args) throws IOException {
-        // Тестовый сценарий
         File tempFile = File.createTempFile("tasks", ".csv");
         tempFile.deleteOnExit();
 
-        // Создаем менеджер и добавляем задачи
         FileBackedTaskManager manager = new FileBackedTaskManager(tempFile);
 
         Task task = new Task("Task 1", "Description 1", Status.NEW);
@@ -207,10 +200,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         Subtask subtask = new Subtask("Subtask 1", "Description Subtask 1", Status.NEW, epicId);
         manager.createSubtask(subtask);
 
-        // Загружаем из файла
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile);
 
-        // Проверяем загрузку
         System.out.println("Tasks after load: " + loadedManager.getTasks());
         System.out.println("Epics after load: " + loadedManager.getEpics());
         System.out.println("Subtasks after load: " + loadedManager.getSubtasks());
