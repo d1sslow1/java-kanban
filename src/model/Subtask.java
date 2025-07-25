@@ -14,6 +14,12 @@ public class Subtask extends Task {
 
     @Override
     public String toString() {
-        return super.toString().replaceFirst("\\{", "{epicId=" + epicId + ", ");
+        return "Subtask{" +
+                "id=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getStatus() +
+                ", epicId=" + epicId +
+                '}';
     }
 }

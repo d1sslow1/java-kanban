@@ -26,6 +26,12 @@ public class Epic extends Task {
 
     @Override
     public String toString() {
-        return super.toString().replaceFirst("\\{", "{subtaskIds=" + subtaskIds + ", ");
+        return "Epic{" +
+                "id=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", description='" + getDescription() + '\'' +
+                ", status=" + getStatus() +
+                ", subtaskIds=" + subtaskIds +
+                '}';
     }
 }
