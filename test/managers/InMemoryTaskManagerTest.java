@@ -3,42 +3,57 @@ package managers;
 import model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
-    private TaskManager taskManager;
-    private Task task;
-    private Epic epic;
-    private Subtask subtask;
+    private TaskManager manager;
 
     @BeforeEach
     void setUp() {
-        taskManager = Managers.getDefault();
-        task = new Task("Test Task", "Description", Status.NEW);
-        epic = new Epic("Test Epic", "Epic Description");
-        subtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, 1);
+        manager = new InMemoryTaskManager();
     }
 
     @Test
-    void shouldAddAndFindTask() {
-        final int taskId = taskManager.createTask(task);
-        final Task savedTask = taskManager.getTask(taskId);
-
-        assertNotNull(savedTask, "Task not found");
-        assertEquals(task, savedTask, "Tasks are not equal");
+    void createAndGetTaskShouldWorkCorrectly() {
+        Task task = new Task("Task", "Description", Status.NEW);
+        int taskId = manager.createTask(task);
+        Task savedTask = manager.getTask(taskId);
+        assertNotNull(savedTask);
+        assertEquals(task.getName(), savedTask.getName());
     }
 
     @Test
-    void shouldUpdateEpicStatusWhenSubtaskChanged() {
-        final int epicId = taskManager.createEpic(epic);
-        final int subtaskId = taskManager.createSubtask(
-                new Subtask("Sub", "Desc", Status.NEW, epicId));
+    void updateTaskShouldChangeFields() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        int id = manager.createTask(task);
+        Task updated = new Task("New", "New desc", Status.DONE);
+        updated.setId(id);
+        manager.updateTask(updated);
+        assertEquals("New", manager.getTask(id).getName());
+    }
 
-        Subtask savedSubtask = taskManager.getSubtask(subtaskId);
-        savedSubtask.setStatus(Status.DONE);
-        taskManager.updateSubtask(savedSubtask);
+    @Test
+    void deleteTaskShouldRemoveFromManagerAndHistory() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        int id = manager.createTask(task);
+        manager.getTask(id); // Добавляем в историю
+        manager.deleteTask(id);
+        assertNull(manager.getTask(id));
+        assertTrue(manager.getHistory().isEmpty());
+    }
 
-        assertEquals(Status.DONE, taskManager.getEpic(epicId).getStatus());
+    @Test
+    void epicStatusShouldUpdateWhenSubtasksChange() {
+        Epic epic = new Epic("Epic", "Desc");
+        int epicId = manager.createEpic(epic);
+        Subtask subtask = new Subtask("Sub", "Desc", Status.NEW, epicId);
+        int subId = manager.createSubtask(subtask);
+        assertEquals(Status.NEW, manager.getEpic(epicId).getStatus());
+
+        Subtask updated = new Subtask("New", "New", Status.DONE, epicId);
+        updated.setId(subId);
+        manager.updateSubtask(updated);
+        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus());
     }
 }

@@ -22,6 +22,22 @@ public class Task {
         this.id = id;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public Status getStatus() {
         return status;
     }
@@ -30,12 +46,17 @@ public class Task {
         this.status = status;
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Task task = (Task) o;
+        return id == task.id;
     }
 
-    public String getDescription() {
-        return description;
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override
@@ -46,18 +67,5 @@ public class Task {
                 ", description='" + description + '\'' +
                 ", status=" + status +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Task)) return false;
-        Task task = (Task) o;
-        return id == task.id;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
     }
 }
