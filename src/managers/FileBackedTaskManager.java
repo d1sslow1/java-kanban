@@ -73,7 +73,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
     }
 
-    private String taskToCSV(Task task) {
+    public String taskToCSV(Task task) {
         String type = task instanceof Epic ? "EPIC" :
                 task instanceof Subtask ? "SUBTASK" : "TASK";
         String epicId = task instanceof Subtask ?
