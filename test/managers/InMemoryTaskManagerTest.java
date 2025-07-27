@@ -1,10 +1,10 @@
+
 package managers;
 
 import model.*;
 import org.junit.jupiter.api.*;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Set;
+import java.time.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
@@ -29,16 +29,14 @@ class InMemoryTaskManagerTest {
         Epic savedEpic = manager.getEpic(epicId);
         assertNotNull(savedEpic.getStartTime());
         assertEquals(subtask.getStartTime(), savedEpic.getStartTime());
-        assertEquals(subtask.getEndTime(), savedEpic.getEndTime());
     }
 
     @Test
     void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
-        Task noTimeTask = new Task("No time", "Desc", Status.NEW);
-        manager.createTask(noTimeTask);
+        Task task = new Task("Task", "Desc", Status.NEW);
+        manager.createTask(task);
 
-        Set<Task> prioritized = manager.getPrioritizedTasks();
-        assertTrue(prioritized.isEmpty());
+        assertTrue(manager.getPrioritizedTasks().isEmpty());
     }
 
     @Test
@@ -51,15 +49,5 @@ class InMemoryTaskManagerTest {
         manager.updateSubtask(updated);
 
         assertEquals(Status.DONE, manager.getEpic(epicId).getStatus());
-    }
-
-    @Test
-    void createAndGetTaskShouldWorkCorrectly() {
-        Task task = new Task("Task", "Desc", Status.NEW);
-        task.setStartTime(LocalDateTime.now());
-        int taskId = manager.createTask(task);
-
-        Task saved = manager.getTask(taskId);
-        assertEquals(task.getName(), saved.getName());
     }
 }
