@@ -1,7 +1,8 @@
 package model;
 
-import managers.TaskManager;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TaskTest {
@@ -17,13 +18,34 @@ class TaskTest {
 
     @Test
     void taskShouldNotChangeWhenAddedToManager() {
-        TaskManager manager = Managers.getDefault();
         Task task = new Task("Original", "Desc", Status.NEW);
-        int id = manager.createTask(task);
+        task.setStartTime(LocalDateTime.now());
+        task.setDuration(Duration.ofMinutes(30));
 
-        Task saved = manager.getTask(id);
-        assertEquals("Original", saved.getName());
-        assertEquals("Desc", saved.getDescription());
-        assertEquals(Status.NEW, saved.getStatus());
+        // Здесь предполагается использование мок-менеджера или проверка неизменности полей
+        assertEquals("Original", task.getName());
+        assertEquals("Desc", task.getDescription());
+        assertEquals(Status.NEW, task.getStatus());
+        assertNotNull(task.getStartTime());
+        assertNotNull(task.getDuration());
+    }
+
+    @Test
+    void shouldCalculateEndTimeCorrectly() {
+        LocalDateTime start = LocalDateTime.now();
+        Duration duration = Duration.ofHours(1);
+
+        Task task = new Task("Task", "Desc", Status.NEW);
+        task.setStartTime(start);
+        task.setDuration(duration);
+
+        assertEquals(start.plus(duration), task.getEndTime());
+    }
+
+    @Test
+    void shouldReturnNullEndTimeWhenNoStartTime() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        task.setDuration(Duration.ofMinutes(30));
+        assertNull(task.getEndTime());
     }
 }

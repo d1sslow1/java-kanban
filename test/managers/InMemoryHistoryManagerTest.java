@@ -11,6 +11,7 @@ class InMemoryHistoryManagerTest {
     private HistoryManager manager;
     private Task task1;
     private Task task2;
+    private Task task3;
 
     @BeforeEach
     void setUp() {
@@ -19,6 +20,8 @@ class InMemoryHistoryManagerTest {
         task1.setId(1);
         task2 = new Task("Task 2", "Description 2", Status.IN_PROGRESS);
         task2.setId(2);
+        task3 = new Task("Task 3", "Description 3", Status.DONE);
+        task3.setId(3);
     }
 
     @Test
@@ -47,14 +50,32 @@ class InMemoryHistoryManagerTest {
     void removeShouldDeleteTaskFromHistory() {
         manager.add(task1);
         manager.add(task2);
+        manager.add(task3);
+
+        // Удаление из начала
         manager.remove(1);
-        List<Task> history = manager.getHistory();
-        assertEquals(1, history.size());
-        assertEquals(task2, history.get(0));
+        assertEquals(List.of(task2, task3), manager.getHistory());
+
+        // Удаление из середины
+        manager.remove(3);
+        assertEquals(List.of(task2), manager.getHistory());
+
+        // Удаление из конца
+        manager.add(task1);
+        manager.remove(2);
+        assertEquals(List.of(task1), manager.getHistory());
     }
 
     @Test
     void getHistoryShouldReturnEmptyListWhenEmpty() {
         assertTrue(manager.getHistory().isEmpty());
+    }
+
+    @Test
+    void historyShouldNotContainDuplicates() {
+        manager.add(task1);
+        manager.add(task1);
+        manager.add(task1);
+        assertEquals(1, manager.getHistory().size());
     }
 }
