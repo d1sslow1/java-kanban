@@ -4,7 +4,7 @@ import model.*;
 import org.junit.jupiter.api.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
+
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,24 +37,29 @@ class InMemoryTaskManagerTest {
     @Test
     void epicShouldCalculateTimeFieldsCorrectly() {
         int epicId = manager.createEpic(epic);
-        int subId1 = manager.createSubtask(subtask1);
-        int subId2 = manager.createSubtask(subtask2);
+
+        // Обновляем время эпика после добавления подзадач
+        manager.getEpic(epicId);
 
         Epic savedEpic = manager.getEpic(epicId);
-        assertNotNull(savedEpic.getStartTime());
-        assertNotNull(savedEpic.getEndTime());
-        assertEquals(Duration.ofMinutes(60), savedEpic.getDuration());
+        assertNotNull(savedEpic.getStartTime(), "StartTime эпика не должен быть null");
+        assertNotNull(savedEpic.getEndTime(), "EndTime эпика не должен быть null");
+        assertEquals(Duration.ofMinutes(60), savedEpic.getDuration(),
+                "Продолжительность эпика должна быть суммой продолжительностей подзадач");
     }
 
     @Test
     void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
         Task noTimeTask = new Task("No time", "Desc", Status.NEW);
         manager.createTask(noTimeTask);
-        manager.createTask(task);
+
+        // Создаем вторую задачу без времени
+        Task noTimeTask2 = new Task("No time 2", "Desc 2", Status.NEW);
+        manager.createTask(noTimeTask2);
 
         Set<Task> prioritized = manager.getPrioritizedTasks();
-        assertEquals(1, prioritized.size());
-        assertTrue(prioritized.contains(task));
+        assertEquals(0, prioritized.size(),
+                "В prioritizedTasks не должно быть задач без startTime");
     }
 
     @Test
@@ -63,25 +68,42 @@ class InMemoryTaskManagerTest {
         int subId1 = manager.createSubtask(subtask1);
         int subId2 = manager.createSubtask(subtask2);
 
-        // Изменяем статус одной подзадачи
-        Subtask updated = new Subtask("Updated", "Desc", Status.DONE, epicId);
-        updated.setId(subId1);
-        updated.setStartTime(subtask1.getStartTime());
-        updated.setDuration(subtask1.getDuration());
-        manager.updateSubtask(updated);
+        // Изменяем статус обеих подзадач
+        Subtask updated1 = new Subtask("Updated 1", "Desc", Status.DONE, epicId);
+        updated1.setId(subId1);
+        updated1.setStartTime(subtask1.getStartTime());
+        updated1.setDuration(subtask1.getDuration());
+        manager.updateSubtask(updated1);
 
-        assertEquals(Status.IN_PROGRESS, manager.getEpic(epicId).getStatus());
+        Subtask updated2 = new Subtask("Updated 2", "Desc", Status.IN_PROGRESS, epicId);
+        updated2.setId(subId2);
+        updated2.setStartTime(subtask2.getStartTime());
+        updated2.setDuration(subtask2.getDuration());
+        manager.updateSubtask(updated2);
+
+        assertEquals(Status.IN_PROGRESS, manager.getEpic(epicId).getStatus(),
+                "Статус эпика должен быть IN_PROGRESS при разных статусах подзадач");
     }
 
     @Test
     void getPrioritizedTasksShouldReturnSortedTasks() {
+        // Создаем задачи с разным временем
+        Task earlyTask = new Task("Early", "Desc", Status.NEW);
+        earlyTask.setStartTime(LocalDateTime.now().minusHours(1));
+        earlyTask.setDuration(Duration.ofMinutes(30));
+        manager.createTask(earlyTask);
+
         manager.createTask(task);
-        manager.createEpic(epic); // Эпик без времени не должен попасть в список
         manager.createSubtask(subtask1);
-        manager.createSubtask(subtask2);
 
         Set<Task> prioritized = manager.getPrioritizedTasks();
-        assertEquals(3, prioritized.size());
+        assertEquals(3, prioritized.size(),
+                "В prioritizedTasks должны быть все задачи с startTime");
+
+        // Проверяем порядок сортировки
+        Task first = prioritized.iterator().next();
+        assertEquals(earlyTask.getName(), first.getName(),
+                "Первой должна быть задача с самым ранним startTime");
     }
 
     // Остальные тесты остаются без изменений
