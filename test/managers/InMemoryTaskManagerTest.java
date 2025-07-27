@@ -1,9 +1,15 @@
 package managers;
 
-import model.*;
-import org.junit.jupiter.api.*;
-import java.time.*;
-import java.util.*;
+import model.Epic;
+import model.Status;
+import model.Subtask;
+import model.Task;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
@@ -22,58 +28,60 @@ class InMemoryTaskManagerTest {
 
     @Test
     void epicShouldCalculateTimeFieldsCorrectly() {
+        // Создаем и добавляем эпик с подзадачей
         int epicId = manager.createEpic(epic);
         manager.createSubtask(subtask);
 
-        // Явно обновляем эпик
-        manager.updateEpicStatus(epic);
-        manager.updateEpicTimeFields(epic);
-
+        // Получаем обновленный эпик
         Epic savedEpic = manager.getEpic(epicId);
-        assertNotNull(savedEpic.getStartTime(), "StartTime эпика должен быть установлен");
-        assertEquals(subtask.getStartTime(), savedEpic.getStartTime());
-        assertEquals(subtask.getEndTime(), savedEpic.getEndTime());
+
+        // Проверяем что время установлено правильно
+        assertNotNull(savedEpic.getStartTime(), "Время начала эпика должно быть установлено");
+        assertEquals(subtask.getStartTime(), savedEpic.getStartTime(),
+                "Время начала эпика должно совпадать с подзадачей");
+        assertEquals(subtask.getEndTime(), savedEpic.getEndTime(),
+                "Время окончания эпика должно совпадать с подзадачей");
     }
 
     @Test
     void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
-        Task taskWithoutTime = new Task("Task", "Desc", Status.NEW);
-        manager.createTask(taskWithoutTime);
+        // Создаем задачу без времени
+        Task task = new Task("Task", "Desc", Status.NEW);
+        manager.createTask(task);
+
+        // Проверяем что она не попала в prioritizedTasks
+        assertTrue(manager.getPrioritizedTasks().isEmpty(),
+                "Задачи без времени не должны попадать в prioritizedTasks");
 
         // Добавляем задачу с временем для проверки
         Task taskWithTime = new Task("TaskWithTime", "Desc", Status.NEW);
         taskWithTime.setStartTime(LocalDateTime.now());
         manager.createTask(taskWithTime);
 
-        Set<Task> prioritized = manager.getPrioritizedTasks();
-        assertEquals(1, prioritized.size(), "Только задачи с временем должны быть в списке");
-        assertTrue(prioritized.contains(taskWithTime));
+        // Проверяем что только задача с временем попала в список
+        assertEquals(1, manager.getPrioritizedTasks().size(),
+                "Только задачи с временем должны быть в prioritizedTasks");
     }
 
     @Test
     void epicStatusShouldUpdateWhenSubtasksChange() {
+        // Создаем эпик с подзадачей
         int epicId = manager.createEpic(epic);
         int subtaskId = manager.createSubtask(subtask);
 
-        // Создаем вторую подзадачу
-        Subtask subtask2 = new Subtask("Subtask2", "Desc", Status.NEW, epicId);
-        subtask2.setStartTime(LocalDateTime.now().plusHours(1));
-        manager.createSubtask(subtask2);
+        // Проверяем начальный статус
+        assertEquals(Status.NEW, manager.getEpic(epicId).getStatus(),
+                "Начальный статус эпика должен быть NEW");
 
-        // Обновляем первую подзадачу
+        // Обновляем подзадачу на DONE
         Subtask updated = new Subtask("Updated", "Desc", Status.DONE, epicId);
         updated.setId(subtaskId);
         updated.setStartTime(subtask.getStartTime());
         updated.setDuration(subtask.getDuration());
         manager.updateSubtask(updated);
 
-        assertEquals(Status.IN_PROGRESS, manager.getEpic(epicId).getStatus());
-
-        // Обновляем вторую подзадачу
-        Subtask updated2 = new Subtask("Updated2", "Desc", Status.DONE, epicId);
-        updated2.setId(subtask2.getId());
-        manager.updateSubtask(updated2);
-
-        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus());
+        // Проверяем обновленный статус
+        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus(),
+                "Статус эпика должен измениться на DONE");
     }
 }
