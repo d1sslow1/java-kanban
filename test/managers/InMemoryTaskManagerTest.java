@@ -4,7 +4,7 @@ import model.*;
 import org.junit.jupiter.api.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
-
+import java.util.List;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,7 +29,7 @@ class InMemoryTaskManagerTest {
         subtask1.setStartTime(LocalDateTime.now().plusHours(1));
         subtask1.setDuration(Duration.ofMinutes(45));
 
-        subtask2 = new Subtask("Subtask 2", "Desc 2", Status.IN_PROGRESS, epic.getId());
+        subtask2 = new Subtask("Subtask 2", "Desc 2", Status.NEW, epic.getId());
         subtask2.setStartTime(LocalDateTime.now().plusHours(2));
         subtask2.setDuration(Duration.ofMinutes(15));
     }
@@ -37,9 +37,11 @@ class InMemoryTaskManagerTest {
     @Test
     void epicShouldCalculateTimeFieldsCorrectly() {
         int epicId = manager.createEpic(epic);
+        int subId1 = manager.createSubtask(subtask1);
+        int subId2 = manager.createSubtask(subtask2);
 
-        // Обновляем время эпика после добавления подзадач
-        manager.getEpic(epicId);
+        // Обновляем время эпика
+        manager.updateEpic(epic); // Добавлен вызов обновления
 
         Epic savedEpic = manager.getEpic(epicId);
         assertNotNull(savedEpic.getStartTime(), "StartTime эпика не должен быть null");
@@ -50,11 +52,10 @@ class InMemoryTaskManagerTest {
 
     @Test
     void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
-        Task noTimeTask = new Task("No time", "Desc", Status.NEW);
-        manager.createTask(noTimeTask);
-
-        // Создаем вторую задачу без времени
+        Task noTimeTask1 = new Task("No time 1", "Desc", Status.NEW);
         Task noTimeTask2 = new Task("No time 2", "Desc 2", Status.NEW);
+
+        manager.createTask(noTimeTask1);
         manager.createTask(noTimeTask2);
 
         Set<Task> prioritized = manager.getPrioritizedTasks();
@@ -68,18 +69,12 @@ class InMemoryTaskManagerTest {
         int subId1 = manager.createSubtask(subtask1);
         int subId2 = manager.createSubtask(subtask2);
 
-        // Изменяем статус обеих подзадач
-        Subtask updated1 = new Subtask("Updated 1", "Desc", Status.DONE, epicId);
-        updated1.setId(subId1);
-        updated1.setStartTime(subtask1.getStartTime());
-        updated1.setDuration(subtask1.getDuration());
-        manager.updateSubtask(updated1);
-
-        Subtask updated2 = new Subtask("Updated 2", "Desc", Status.IN_PROGRESS, epicId);
-        updated2.setId(subId2);
-        updated2.setStartTime(subtask2.getStartTime());
-        updated2.setDuration(subtask2.getDuration());
-        manager.updateSubtask(updated2);
+        // Изменяем статус одной подзадачи
+        Subtask updated = new Subtask("Updated", "Desc", Status.DONE, epicId);
+        updated.setId(subId1);
+        updated.setStartTime(subtask1.getStartTime());
+        updated.setDuration(subtask1.getDuration());
+        manager.updateSubtask(updated);
 
         assertEquals(Status.IN_PROGRESS, manager.getEpic(epicId).getStatus(),
                 "Статус эпика должен быть IN_PROGRESS при разных статусах подзадач");
@@ -87,32 +82,41 @@ class InMemoryTaskManagerTest {
 
     @Test
     void getPrioritizedTasksShouldReturnSortedTasks() {
-        // Создаем задачи с разным временем
-        Task earlyTask = new Task("Early", "Desc", Status.NEW);
-        earlyTask.setStartTime(LocalDateTime.now().minusHours(1));
-        earlyTask.setDuration(Duration.ofMinutes(30));
-        manager.createTask(earlyTask);
+        // Создаем 3 задачи с временем
+        Task task1 = new Task("Task 1", "Desc", Status.NEW);
+        task1.setStartTime(LocalDateTime.now());
+        task1.setDuration(Duration.ofMinutes(30));
 
-        manager.createTask(task);
-        manager.createSubtask(subtask1);
+        Task task2 = new Task("Task 2", "Desc", Status.NEW);
+        task2.setStartTime(LocalDateTime.now().plusHours(1));
+        task2.setDuration(Duration.ofMinutes(45));
+
+        Task task3 = new Task("Task 3", "Desc", Status.NEW);
+        task3.setStartTime(LocalDateTime.now().plusHours(2));
+        task3.setDuration(Duration.ofMinutes(15));
+
+        manager.createTask(task1);
+        manager.createTask(task2);
+        manager.createTask(task3);
 
         Set<Task> prioritized = manager.getPrioritizedTasks();
         assertEquals(3, prioritized.size(),
-                "В prioritizedTasks должны быть все задачи с startTime");
+                "В prioritizedTasks должны быть все 3 задачи с startTime");
 
         // Проверяем порядок сортировки
-        Task first = prioritized.iterator().next();
-        assertEquals(earlyTask.getName(), first.getName(),
-                "Первой должна быть задача с самым ранним startTime");
+        Task[] tasks = prioritized.toArray(new Task[0]);
+        assertTrue(tasks[0].getStartTime().isBefore(tasks[1].getStartTime()));
+        assertTrue(tasks[1].getStartTime().isBefore(tasks[2].getStartTime()));
     }
 
-    // Остальные тесты остаются без изменений
     @Test
     void createAndGetTaskShouldWorkCorrectly() {
         int taskId = manager.createTask(task);
         Task savedTask = manager.getTask(taskId);
         assertNotNull(savedTask);
         assertEquals(task.getName(), savedTask.getName());
+        assertEquals(task.getStartTime(), savedTask.getStartTime());
+        assertEquals(task.getDuration(), savedTask.getDuration());
     }
 
     @Test
@@ -120,16 +124,21 @@ class InMemoryTaskManagerTest {
         int id = manager.createTask(task);
         Task updated = new Task("New", "New desc", Status.DONE);
         updated.setId(id);
-        updated.setStartTime(task.getStartTime());
-        updated.setDuration(task.getDuration());
+        updated.setStartTime(task.getStartTime().plusHours(1));
+        updated.setDuration(Duration.ofHours(1));
         manager.updateTask(updated);
-        assertEquals("New", manager.getTask(id).getName());
+
+        Task saved = manager.getTask(id);
+        assertEquals("New", saved.getName());
+        assertEquals(Status.DONE, saved.getStatus());
+        assertEquals(updated.getStartTime(), saved.getStartTime());
+        assertEquals(updated.getDuration(), saved.getDuration());
     }
 
     @Test
     void deleteTaskShouldRemoveFromManagerAndHistory() {
         int id = manager.createTask(task);
-        manager.getTask(id);
+        manager.getTask(id); // Добавляем в историю
         manager.deleteTask(id);
         assertNull(manager.getTask(id));
         assertTrue(manager.getHistory().isEmpty());
