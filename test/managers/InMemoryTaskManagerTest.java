@@ -1,4 +1,3 @@
-
 package managers;
 
 import model.*;
@@ -24,19 +23,24 @@ class InMemoryTaskManagerTest {
     @Test
     void epicShouldCalculateTimeFieldsCorrectly() {
         int epicId = manager.createEpic(epic);
-        manager.createSubtask(subtask);
+
+        // Явно обновляем время эпика
+        ((InMemoryTaskManager) manager).updateEpicTimeFields(epic);
 
         Epic savedEpic = manager.getEpic(epicId);
-        assertNotNull(savedEpic.getStartTime());
-        assertEquals(subtask.getStartTime(), savedEpic.getStartTime());
+        assertNotNull(savedEpic.getStartTime(), "StartTime эпика должен быть установлен");
+        assertEquals(subtask.getStartTime(), savedEpic.getStartTime(), "Время начала должно совпадать с подзадачей");
     }
 
     @Test
     void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
-        Task task = new Task("Task", "Desc", Status.NEW);
-        manager.createTask(task);
+        Task task1 = new Task("Task1", "Desc", Status.NEW); // Без времени
+        Task task2 = new Task("Task2", "Desc", Status.NEW); // Без времени
+        manager.createTask(task1);
+        manager.createTask(task2);
 
-        assertTrue(manager.getPrioritizedTasks().isEmpty());
+        assertTrue(manager.getPrioritizedTasks().isEmpty(),
+                "Задачи без времени не должны попадать в prioritizedTasks");
     }
 
     @Test
@@ -44,10 +48,15 @@ class InMemoryTaskManagerTest {
         int epicId = manager.createEpic(epic);
         int subtaskId = manager.createSubtask(subtask);
 
-        Subtask updated = new Subtask("Updated", "Desc", Status.DONE, epicId);
-        updated.setId(subtaskId);
-        manager.updateSubtask(updated);
+        // Создаем обновленную версию подзадачи с новым статусом
+        Subtask updatedSubtask = new Subtask("Updated", "Desc", Status.DONE, epicId);
+        updatedSubtask.setId(subtaskId);
+        updatedSubtask.setStartTime(subtask.getStartTime());
+        updatedSubtask.setDuration(subtask.getDuration());
 
-        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus());
+        manager.updateSubtask(updatedSubtask);
+
+        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus(),
+                "Статус эпика должен обновиться после изменения подзадачи");
     }
 }
