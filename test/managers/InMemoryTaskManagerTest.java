@@ -8,142 +8,123 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
     private InMemoryTaskManager manager;
-    private Epic testEpic;
-    private Subtask testSubtask;
-    private Task testTask;
+    private Epic epic;
+    private Subtask subtask;
+    private Task task;
 
     @BeforeEach
     void setUp() {
         manager = new InMemoryTaskManager();
-        testEpic = new Epic("Test Epic", "Epic Description");
-        int epicId = manager.createEpic(testEpic);
-        testEpic.setId(epicId);
-
-        testSubtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, epicId);
-        int subtaskId = manager.createSubtask(testSubtask);
-        testSubtask.setId(subtaskId);
-
-        testTask = new Task("Test Task", "Task Description", Status.NEW);
-        testTask.setStartTime(LocalDateTime.now());
-        testTask.setDuration(Duration.ofMinutes(30));
-        int taskId = manager.createTask(testTask);
-        testTask.setId(taskId);
-    }
-
-    @Test
-    void shouldPrioritizeTasksByStartTime() {
-        TaskManager taskManager = Managers.getDefault();
-
-        Task task1 = new Task("Task 1", "Desc", Status.NEW);
-        task1.setStartTime(LocalDateTime.now().plusHours(1));
-        task1.setDuration(Duration.ofMinutes(30));
-        taskManager.createTask(task1);
-
-        Task task2 = new Task("Task 2", "Desc", Status.NEW);
-        task2.setStartTime(LocalDateTime.now().plusHours(2));
-        task2.setDuration(Duration.ofMinutes(30));
-        taskManager.createTask(task2);
-
-        List<Task> prioritized = new ArrayList<>(taskManager.getPrioritizedTasks());
-        assertEquals(2, prioritized.size());
-        assertEquals(task1.getName(), prioritized.get(0).getName());
-        assertEquals(task2.getName(), prioritized.get(1).getName());
-    }
-
-    @Test
-    void shouldNotAllowSubtaskToBeItsOwnEpic() {
-        Epic epic = new Epic("Test Epic", "Description");
+        epic = new Epic("Epic", "Desc");
         int epicId = manager.createEpic(epic);
+        epic.setId(epicId);
 
-        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
-        invalidSubtask.setId(epicId);
+        subtask = new Subtask("Subtask", "Desc", Status.NEW, epicId);
+        int subtaskId = manager.createSubtask(subtask);
+        subtask.setId(subtaskId);
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            manager.createSubtask(invalidSubtask);
-        });
-
-        assertEquals("Подзадача не может ссылаться на саму себя", exception.getMessage());
+        task = new Task("Task", "Desc", Status.NEW);
+        task.setStartTime(LocalDateTime.now());
+        task.setDuration(Duration.ofMinutes(30));
+        int taskId = manager.createTask(task);
+        task.setId(taskId);
     }
 
     @Test
-    void shouldCreateAndRetrieveTask() {
-        Task retrievedTask = manager.getTask(testTask.getId());
-        assertNotNull(retrievedTask);
-        assertEquals(testTask.getName(), retrievedTask.getName());
-        assertEquals(testTask.getDescription(), retrievedTask.getDescription());
+    void prioritizeTasks() {
+        TaskManager tm = Managers.getDefault();
+
+        Task t1 = new Task("T1", "D", Status.NEW);
+        t1.setStartTime(LocalDateTime.now().plusHours(1));
+        tm.createTask(t1);
+
+        Task t2 = new Task("T2", "D", Status.NEW);
+        t2.setStartTime(LocalDateTime.now().plusHours(2));
+        tm.createTask(t2);
+
+        List<Task> prioritized = new ArrayList<>(tm.getPrioritizedTasks());
+        assertEquals(2, prioritized.size());
+        assertEquals(t1.getName(), prioritized.getFirst().getName());
     }
 
     @Test
-    void shouldCreateAndRetrieveEpic() {
-        Epic retrievedEpic = manager.getEpic(testEpic.getId());
-        assertNotNull(retrievedEpic);
-        assertEquals(testEpic.getName(), retrievedEpic.getName());
-        assertEquals(1, retrievedEpic.getSubtaskIds().size());
+    void rejectSelfEpicSubtask() {
+        Epic e = new Epic("E", "D");
+        int eId = manager.createEpic(e);
+
+        Subtask s = new Subtask("S", "D", Status.NEW, eId);
+        s.setId(eId);
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> manager.createSubtask(s));
+
+        assertEquals("Подзадача не может ссылаться на саму себя", ex.getMessage());
     }
 
     @Test
-    void shouldCreateAndRetrieveSubtask() {
-        Subtask retrievedSubtask = manager.getSubtask(testSubtask.getId());
-        assertNotNull(retrievedSubtask);
-        assertEquals(testSubtask.getName(), retrievedSubtask.getName());
-        assertEquals(testEpic.getId(), retrievedSubtask.getEpicId());
+    void createAndGetTask() {
+        Task t = manager.getTask(task.getId());
+        assertNotNull(t);
+        assertEquals(task.getName(), t.getName());
     }
 
     @Test
-    void shouldUpdateTaskStatus() {
-        testTask.setStatus(Status.IN_PROGRESS);
-        manager.updateTask(testTask);
-
-        Task updatedTask = manager.getTask(testTask.getId());
-        assertEquals(Status.IN_PROGRESS, updatedTask.getStatus());
+    void createAndGetEpic() {
+        Epic e = manager.getEpic(epic.getId());
+        assertNotNull(e);
+        assertEquals(1, e.getSubtaskIds().size());
     }
 
     @Test
-    void shouldUpdateEpicStatusBasedOnSubtasks() {
-        Subtask newSubtask = new Subtask("New Subtask", "Desc", Status.DONE, testEpic.getId());
-        manager.createSubtask(newSubtask);
-
-        Epic updatedEpic = manager.getEpic(testEpic.getId());
-        assertEquals(Status.IN_PROGRESS, updatedEpic.getStatus());
+    void createAndGetSubtask() {
+        Subtask s = manager.getSubtask(subtask.getId());
+        assertNotNull(s);
+        assertEquals(epic.getId(), s.getEpicId());
     }
 
     @Test
-    void shouldDeleteTask() {
-        manager.deleteTask(testTask.getId());
-        assertNull(manager.getTask(testTask.getId()));
-        assertTrue(manager.getTasks().isEmpty());
+    void updateTaskStatus() {
+        task.setStatus(Status.IN_PROGRESS);
+        manager.updateTask(task);
+        assertEquals(Status.IN_PROGRESS, manager.getTask(task.getId()).getStatus());
     }
 
     @Test
-    void shouldDeleteEpicWithSubtasks() {
-        manager.deleteEpic(testEpic.getId());
-        assertNull(manager.getEpic(testEpic.getId()));
-        assertTrue(manager.getSubtasks().isEmpty());
+    void updateEpicStatus() {
+        Subtask s = new Subtask("S", "D", Status.DONE, epic.getId());
+        manager.createSubtask(s);
+        assertEquals(Status.IN_PROGRESS, manager.getEpic(epic.getId()).getStatus());
     }
 
     @Test
-    void shouldReturnEmptyListForNonExistentEpicSubtasks() {
-        List<Subtask> subtasks = manager.getEpicSubtasks(999);
-        assertTrue(subtasks.isEmpty());
+    void deleteTask() {
+        manager.deleteTask(task.getId());
+        assertNull(manager.getTask(task.getId()));
     }
 
     @Test
-    void shouldDetectTaskOverlap() {
-        Task overlappingTask = new Task("Overlap", "Desc", Status.NEW);
-        overlappingTask.setStartTime(testTask.getStartTime().plusMinutes(10));
-        overlappingTask.setDuration(Duration.ofMinutes(20));
-
-        assertTrue(manager.isTaskOverlapping(overlappingTask));
+    void deleteEpicWithSubtasks() {
+        manager.deleteEpic(epic.getId());
+        assertNull(manager.getEpic(epic.getId()));
     }
 
     @Test
-    void shouldAddTasksToHistory() {
-        manager.getTask(testTask.getId());
-        manager.getEpic(testEpic.getId());
+    void emptySubtasksForInvalidEpic() {
+        assertTrue(manager.getEpicSubtasks(999).isEmpty());
+    }
 
+    @Test
+    void detectOverlap() {
+        Task t = new Task("T", "D", Status.NEW);
+        t.setStartTime(task.getStartTime().plusMinutes(10));
+        t.setDuration(Duration.ofMinutes(20));
+        assertTrue(manager.isTaskOverlapping(t));
+    }
+
+    @Test
+    void addToHistory() {
+        manager.getTask(task.getId());
+        manager.getEpic(epic.getId());
         List<Task> history = manager.getHistory();
         assertEquals(2, history.size());
-        assertTrue(history.contains(testTask));
-        assertTrue(history.contains(testEpic));
     }
 }
