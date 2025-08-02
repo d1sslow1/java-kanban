@@ -111,7 +111,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public int createSubtask(Subtask subtask) {
         if (subtask.getId() == subtask.getEpicId()) {
-            throw new IllegalArgumentException("Подзадача не может быть своим же эпиком");
+            throw new IllegalArgumentException("Подзадача не может ссылаться на саму себя");
         }
         if (!epics.containsKey(subtask.getEpicId())) {
             return -1;
@@ -183,7 +183,10 @@ public class InMemoryTaskManager implements TaskManager {
         boolean allDone = true;
 
         for (int id : subtaskIds) {
-            Status status = subtasks.get(id).getStatus();
+            Subtask subtask = subtasks.get(id);
+            if (subtask == null) continue;
+
+            Status status = subtask.getStatus();
             if (status != Status.NEW) allNew = false;
             if (status != Status.DONE) allDone = false;
         }
