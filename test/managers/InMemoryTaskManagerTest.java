@@ -16,18 +16,51 @@ class InMemoryTaskManagerTest {
     void setUp() {
         manager = new InMemoryTaskManager();
         testEpic = new Epic("Test Epic", "Epic Description");
-        int epicId = manager.createEpic(testEpic);
-        testEpic.setId(epicId);
+        testEpic.setId(manager.createEpic(testEpic));
 
         testSubtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, testEpic.getId());
-        int subtaskId = manager.createSubtask(testSubtask);
-        testSubtask.setId(subtaskId);
+        testSubtask.setId(manager.createSubtask(testSubtask));
 
         testTask = new Task("Test Task", "Task Description", Status.NEW);
         testTask.setStartTime(LocalDateTime.now());
         testTask.setDuration(Duration.ofMinutes(30));
-        int taskId = manager.createTask(testTask);
-        testTask.setId(taskId);
+        testTask.setId(manager.createTask(testTask));
+    }
+
+    @Test
+    void shouldPrioritizeTasksByStartTime() {
+        manager.deleteAllTasks();
+        manager.deleteAllSubtasks();
+        manager.deleteAllEpics();
+
+        Task task1 = new Task("Task 1", "Desc", Status.NEW);
+        task1.setStartTime(LocalDateTime.now().plusHours(2));
+        task1.setDuration(Duration.ofMinutes(30));
+        manager.createTask(task1);
+
+        Task task2 = new Task("Task 2", "Desc", Status.NEW);
+        task2.setStartTime(LocalDateTime.now().plusHours(1));
+        task2.setDuration(Duration.ofMinutes(30));
+        manager.createTask(task2);
+
+        Set<Task> prioritized = manager.getPrioritizedTasks();
+        List<Task> prioritizedList = new ArrayList<>(prioritized);
+
+        assertEquals(2, prioritizedList.size());
+        assertEquals(task2, prioritizedList.get(0));
+        assertEquals(task1, prioritizedList.get(1));
+    }
+
+    @Test
+    void shouldNotAllowSubtaskToBeItsOwnEpic() {
+        Epic epic = new Epic("Epic", "Description");
+        int epicId = manager.createEpic(epic);
+        epic.setId(epicId);
+
+        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
+        invalidSubtask.setId(epicId);
+
+        assertThrows(IllegalArgumentException.class, () -> manager.createSubtask(invalidSubtask));
     }
 
     @Test
@@ -93,29 +126,6 @@ class InMemoryTaskManagerTest {
     }
 
     @Test
-    void shouldPrioritizeTasksByStartTime() {
-        // Очищаем существующие задачи
-        manager.deleteAllTasks();
-
-        Task earlyTask = new Task("Early", "Desc", Status.NEW);
-        earlyTask.setStartTime(LocalDateTime.now().minusHours(1));
-        earlyTask.setDuration(Duration.ofMinutes(30));
-        int earlyId = manager.createTask(earlyTask);
-        earlyTask.setId(earlyId);
-
-        Task lateTask = new Task("Late", "Desc", Status.NEW);
-        lateTask.setStartTime(LocalDateTime.now().plusHours(1));
-        lateTask.setDuration(Duration.ofMinutes(30));
-        int lateId = manager.createTask(lateTask);
-        lateTask.setId(lateId);
-
-        List<Task> prioritized = new ArrayList<>(manager.getPrioritizedTasks());
-        assertEquals(2, prioritized.size());
-        assertEquals(earlyTask, prioritized.get(0));
-        assertEquals(lateTask, prioritized.get(1));
-    }
-
-    @Test
     void shouldDetectTaskOverlap() {
         Task overlappingTask = new Task("Overlap", "Desc", Status.NEW);
         overlappingTask.setStartTime(testTask.getStartTime().plusMinutes(10));
@@ -133,19 +143,5 @@ class InMemoryTaskManagerTest {
         assertEquals(2, history.size());
         assertTrue(history.contains(testTask));
         assertTrue(history.contains(testEpic));
-    }
-
-    @Test
-    void shouldNotAllowSubtaskToBeItsOwnEpic() {
-        // Создаем новый эпик и подзадачу с таким же ID
-        Epic epic = new Epic("Epic", "Desc");
-        int epicId = manager.createEpic(epic);
-
-        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
-        invalidSubtask.setId(epicId); // Устанавливаем тот же ID
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            manager.updateSubtask(invalidSubtask); // Пытаемся обновить (не создаем новую)
-        });
     }
 }
