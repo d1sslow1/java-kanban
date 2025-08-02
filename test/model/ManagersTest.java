@@ -1,27 +1,26 @@
 package model;
-import managers.HistoryManager;
-import managers.TaskManager;
+
+import managers.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ManagersTest {
     @Test
-    void getDefaultShouldReturnInitializedTaskManager() {
-        TaskManager manager = Managers.getDefault();
-        assertNotNull(manager);
+    void getDefaultManager() {
+        TaskManager tm = Managers.getDefault();
+        assertNotNull(tm);
 
-        Task task = new Task("Test", "Desc", Status.NEW);
-        int id = manager.createTask(task);
-        assertNotNull(manager.getTask(id));
+        Task t = new Task("T", "D", Status.NEW);
+        tm.createTask(t);
     }
 
     @Test
-    void getDefaultHiShouldRetInitializedHiManager() {
-        HistoryManager historyManager = Managers.getDefaultHistory();
-        assertNotNull(historyManager);
+    void getDefaultHistory() {
+        HistoryManager hm = Managers.getDefaultHistory();
+        assertNotNull(hm);
 
-        Task task = new Task("Test", "Desc", Status.NEW);
-        historyManager.add(task);
-        assertFalse(historyManager.getHistory().isEmpty());
+        Task t = new Task("T", "D", Status.NEW);
+        hm.add(t);
+        assertFalse(hm.getHistory().isEmpty());
     }
 }

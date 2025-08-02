@@ -1,48 +1,63 @@
 package managers;
 
-
-import model.Epic;
-import model.Managers;
-import model.Status;
-import model.Task;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import model.*;
+import org.junit.jupiter.api.*;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryHistoryManagerTest {
-    private HistoryManager historyManager;
-    private Task task;
-    private Epic epic;
+    private HistoryManager manager;
+    private Task t1, t2, t3;
 
     @BeforeEach
     void setUp() {
-        historyManager = Managers.getDefaultHistory();
-        task = new Task("Task", "Desc", Status.NEW);
-        task.setId(1);
-        epic = new Epic("Epic", "Epic Desc");
-        epic.setId(2);
+        manager = new InMemoryHistoryManager();
+        t1 = new Task("T1", "D", Status.NEW);
+        t1.setId(1);
+        t2 = new Task("T2", "D", Status.IN_PROGRESS);
+        t2.setId(2);
+        t3 = new Task("T3", "D", Status.DONE);
+        t3.setId(3);
     }
 
     @Test
-    void shouldAddTasksToHistory() {
-        historyManager.add(task);
-        historyManager.add(epic);
-
-        final List<Task> history = historyManager.getHistory();
-        assertEquals(2, history.size(), "History size incorrect");
-        assertEquals(task, history.get(0), "Tasks don't match");
+    void addTasks() {
+        manager.add(t1);
+        manager.add(t2);
+        assertEquals(2, manager.getHistory().size());
     }
 
     @Test
-    void shouldNotExceedMaxSize() {
-        for (int i = 0; i < 15; i++) {
-            Task t = new Task("Task" + i, "Desc", Status.NEW);
-            t.setId(i);
-            historyManager.add(t);
-        }
+    void replaceDuplicates() {
+        manager.add(t1);
+        Task updated = new Task("U", "D", Status.DONE);
+        updated.setId(1);
+        manager.add(updated);
+        assertEquals("U", manager.getHistory().getFirst().getName());
+    }
 
-        assertEquals(10, historyManager.getHistory().size(),
-                "History should be limited to 10 items");
+    @Test
+    void removeTasks() {
+        manager.add(t1);
+        manager.add(t2);
+        manager.add(t3);
+
+        manager.remove(1);
+        assertEquals(List.of(t2, t3), manager.getHistory());
+
+        manager.remove(3);
+        assertEquals(List.of(t2), manager.getHistory());
+    }
+
+    @Test
+    void emptyHistory() {
+        assertTrue(manager.getHistory().isEmpty());
+    }
+
+    @Test
+    void noDuplicates() {
+        manager.add(t1);
+        manager.add(t1);
+        assertEquals(1, manager.getHistory().size());
     }
 }

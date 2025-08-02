@@ -1,30 +1,50 @@
 package model;
 
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class EpicTest {
-
     @Test
-    void epicShouldStartWithEmptySubtasks() {
-        Epic epic = new Epic("Epic", "Desc");
-        assertTrue(epic.getSubtaskIds().isEmpty());
+    void emptySubtasks() {
+        Epic e = new Epic("E", "D");
+        assertTrue(e.getSubtaskIds().isEmpty());
     }
 
     @Test
-    void canAddAndRemoveSubtaskId() {
-        Epic epic = new Epic("Epic", "Desc");
-        epic.addSubtaskId(1);
-        epic.removeSubtaskId(1);
-        assertFalse(epic.getSubtaskIds().contains(1));
+    void addRemoveSubtask() {
+        Epic e = new Epic("E", "D");
+        e.addSubtaskId(1);
+        e.removeSubtaskId(1);
+        assertFalse(e.getSubtaskIds().contains(1));
     }
 
     @Test
-    void epicEqualityById() {
-        Epic epic1 = new Epic("E", "D");
-        Epic epic2 = new Epic("E", "D");
-        epic1.setId(5);
-        epic2.setId(5);
-        assertEquals(epic1, epic2);
+    void equalById() {
+        Epic e1 = new Epic("E", "D");
+        Epic e2 = new Epic("E", "D");
+        e1.setId(1);
+        e2.setId(1);
+        assertEquals(e1, e2);
+    }
+
+    @Test
+    void calculateTime() {
+        Epic e = new Epic("E", "D");
+        Subtask s1 = new Subtask("S1", "D", Status.NEW, 1);
+        s1.setStartTime(LocalDateTime.now());
+        s1.setDuration(Duration.ofMinutes(30));
+
+        e.updateTimeFields(List.of(s1));
+        assertEquals(s1.getStartTime(), e.getStartTime());
+    }
+
+    @Test
+    void emptyTime() {
+        Epic e = new Epic("E", "D");
+        e.updateTimeFields(List.of());
+        assertNull(e.getStartTime());
     }
 }
