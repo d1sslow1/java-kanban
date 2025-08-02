@@ -8,77 +8,125 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryTaskManagerTest {
     private InMemoryTaskManager manager;
-    private Epic epic;
+    private Epic testEpic;
+    private Subtask testSubtask;
+    private Task testTask;
 
     @BeforeEach
     void setUp() {
         manager = new InMemoryTaskManager();
-        epic = new Epic("Epic", "Description");
+        testEpic = new Epic("Test Epic", "Epic Description");
+        manager.createEpic(testEpic);
+
+        testSubtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, testEpic.getId());
+        manager.createSubtask(testSubtask);
+
+        testTask = new Task("Test Task", "Task Description", Status.NEW);
+        testTask.setStartTime(LocalDateTime.now());
+        testTask.setDuration(Duration.ofMinutes(30));
+        manager.createTask(testTask);
     }
 
     @Test
-    void epicShouldCalculateTimeFieldsCorrectly() {
-
-        Subtask subtask = new Subtask("Subtask", "Desc", Status.NEW, epic.getId());
-        subtask.setStartTime(LocalDateTime.now());
-        subtask.setDuration(Duration.ofMinutes(30));
-
-        int epicId = manager.createEpic(epic);
-        manager.createSubtask(subtask);
-
-        Epic savedEpic = manager.getEpic(epicId);
-        assertNotNull(savedEpic.getStartTime(), "Время начала эпика должно быть установлено");
-        assertEquals(subtask.getStartTime(), savedEpic.getStartTime());
-        assertEquals(subtask.getEndTime(), savedEpic.getEndTime());
+    void shouldCreateAndRetrieveTask() {
+        Task retrievedTask = manager.getTask(testTask.getId());
+        assertNotNull(retrievedTask);
+        assertEquals(testTask.getName(), retrievedTask.getName());
+        assertEquals(testTask.getDescription(), retrievedTask.getDescription());
     }
 
     @Test
-    void tasksWithoutStartTimeShouldNotBeInPrioritizedList() {
-
-        Task taskWithoutTime = new Task("Task", "Desc", Status.NEW);
-
-        manager.createTask(taskWithoutTime);
-
-        assertTrue(manager.getPrioritizedTasks().isEmpty(),
-                "Задачи без времени не должны попадать в prioritizedTasks");
+    void shouldCreateAndRetrieveEpic() {
+        Epic retrievedEpic = manager.getEpic(testEpic.getId());
+        assertNotNull(retrievedEpic);
+        assertEquals(testEpic.getName(), retrievedEpic.getName());
+        assertEquals(1, retrievedEpic.getSubtaskIds().size());
     }
 
     @Test
-    void epicStatusShouldUpdateWhenSubtasksChange() {
-
-        Subtask subtask = new Subtask("Subtask", "Desc", Status.NEW, epic.getId());
-
-
-        int epicId = manager.createEpic(epic);
-        int subtaskId = manager.createSubtask(subtask);
-
-
-        assertEquals(Status.NEW, manager.getEpic(epicId).getStatus(),
-                "Начальный статус эпика должен быть NEW");
-
-        Subtask updatedSubtask = new Subtask("Updated", "Desc", Status.DONE, epicId);
-        updatedSubtask.setId(subtaskId);
-        manager.updateSubtask(updatedSubtask);
-
-        assertEquals(Status.DONE, manager.getEpic(epicId).getStatus(),
-                "Статус эпика должен измениться на DONE");
+    void shouldCreateAndRetrieveSubtask() {
+        Subtask retrievedSubtask = manager.getSubtask(testSubtask.getId());
+        assertNotNull(retrievedSubtask);
+        assertEquals(testSubtask.getName(), retrievedSubtask.getName());
+        assertEquals(testEpic.getId(), retrievedSubtask.getEpicId());
     }
 
     @Test
-    void prioritizedTasksShouldContainOnlyTasksWithTime() {
+    void shouldUpdateTaskStatus() {
+        testTask.setStatus(Status.IN_PROGRESS);
+        manager.updateTask(testTask);
 
-        Task taskWithoutTime = new Task("Task1", "Desc", Status.NEW);
-        Task taskWithTime = new Task("Task2", "Desc", Status.NEW);
-        taskWithTime.setStartTime(LocalDateTime.now());
+        Task updatedTask = manager.getTask(testTask.getId());
+        assertEquals(Status.IN_PROGRESS, updatedTask.getStatus());
+    }
 
+    @Test
+    void shouldUpdateEpicStatusBasedOnSubtasks() {
+        Subtask newSubtask = new Subtask("New Subtask", "Desc", Status.DONE, testEpic.getId());
+        manager.createSubtask(newSubtask);
 
-        manager.createTask(taskWithoutTime);
-        manager.createTask(taskWithTime);
+        Epic updatedEpic = manager.getEpic(testEpic.getId());
+        assertEquals(Status.IN_PROGRESS, updatedEpic.getStatus());
+    }
 
+    @Test
+    void shouldDeleteTask() {
+        manager.deleteTask(testTask.getId());
+        assertNull(manager.getTask(testTask.getId()));
+        assertTrue(manager.getTasks().isEmpty());
+    }
 
-        Set<Task> prioritized = manager.getPrioritizedTasks();
-        assertEquals(1, prioritized.size());
-        assertTrue(prioritized.contains(taskWithTime));
-        assertFalse(prioritized.contains(taskWithoutTime));
+    @Test
+    void shouldDeleteEpicWithSubtasks() {
+        manager.deleteEpic(testEpic.getId());
+        assertNull(manager.getEpic(testEpic.getId()));
+        assertTrue(manager.getSubtasks().isEmpty());
+    }
+
+    @Test
+    void shouldReturnEmptyListForNonExistentEpicSubtasks() {
+        List<Subtask> subtasks = manager.getEpicSubtasks(999);
+        assertTrue(subtasks.isEmpty());
+    }
+
+    @Test
+    void shouldPrioritizeTasksByStartTime() {
+        Task earlyTask = new Task("Early", "Desc", Status.NEW);
+        earlyTask.setStartTime(LocalDateTime.now().minusHours(1));
+        manager.createTask(earlyTask);
+
+        Task lateTask = new Task("Late", "Desc", Status.NEW);
+        lateTask.setStartTime(LocalDateTime.now().plusHours(1));
+        manager.createTask(lateTask);
+
+        List<Task> prioritized = new ArrayList<>(manager.getPrioritizedTasks());
+        assertEquals(earlyTask, prioritized.get(0));
+        assertEquals(lateTask, prioritized.get(1));
+    }
+
+    @Test
+    void shouldDetectTaskOverlap() {
+        Task overlappingTask = new Task("Overlap", "Desc", Status.NEW);
+        overlappingTask.setStartTime(testTask.getStartTime().plusMinutes(10));
+        overlappingTask.setDuration(Duration.ofMinutes(20));
+
+        assertTrue(manager.isTaskOverlapping(overlappingTask));
+    }
+
+    @Test
+    void shouldAddTasksToHistory() {
+        manager.getTask(testTask.getId());
+        manager.getEpic(testEpic.getId());
+
+        List<Task> history = manager.getHistory();
+        assertEquals(2, history.size());
+        assertTrue(history.contains(testTask));
+        assertTrue(history.contains(testEpic));
+    }
+
+    @Test
+    void shouldNotAllowSubtaskToBeItsOwnEpic() {
+        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, testSubtask.getId());
+        assertThrows(IllegalArgumentException.class, () -> manager.createSubtask(invalidSubtask));
     }
 }
