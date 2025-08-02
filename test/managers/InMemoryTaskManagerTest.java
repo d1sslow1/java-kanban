@@ -31,41 +31,41 @@ class InMemoryTaskManagerTest {
     }
 
     @Test
+    void shouldNotAllowSubtaskToBeItsOwnEpic() {
+        Epic epic = new Epic("Test Epic", "Description");
+        int epicId = manager.createEpic(epic);
+
+        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
+        invalidSubtask.setId(epicId);
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> manager.createSubtask(invalidSubtask));
+
+        assertEquals("Подзадача не может ссылаться на саму себя", exception.getMessage());
+    }
+
+    @Test
     void shouldPrioritizeTasksByStartTime() {
-        // Создаем новый менеджер для изолированного теста
-        TaskManager taskManager = new InMemoryTaskManager();
+        manager.deleteAllTasks();
+        manager.deleteAllSubtasks();
+        manager.deleteAllEpics();
 
         Task task1 = new Task("Task 1", "Desc", Status.NEW);
         task1.setStartTime(LocalDateTime.now().plusHours(1));
         task1.setDuration(Duration.ofMinutes(30));
-        taskManager.createTask(task1);
+        int task1Id = manager.createTask(task1);
+        task1.setId(task1Id);
 
         Task task2 = new Task("Task 2", "Desc", Status.NEW);
         task2.setStartTime(LocalDateTime.now().plusHours(2));
         task2.setDuration(Duration.ofMinutes(30));
-        taskManager.createTask(task2);
+        int task2Id = manager.createTask(task2);
+        task2.setId(task2Id);
 
-        List<Task> prioritized = new ArrayList<>(taskManager.getPrioritizedTasks());
+        List<Task> prioritized = new ArrayList<>(manager.getPrioritizedTasks());
         assertEquals(2, prioritized.size());
         assertEquals(task1, prioritized.get(0));
         assertEquals(task2, prioritized.get(1));
     }
-
-    @Test
-    void shouldNotAllowSubtaskToBeItsOwnEpic() {
-        Epic epic = new Epic("Test Epic", "Desc");
-        int epicId = manager.createEpic(epic);
-
-        Subtask subtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
-        subtask.setId(epicId);
-
-
-        assertThrows(IllegalStateException.class, () -> {
-            manager.updateEpicStatus(epic);
-            manager.updateSubtask(subtask);
-        });
-    }
-
 
     @Test
     void shouldCreateAndRetrieveTask() {

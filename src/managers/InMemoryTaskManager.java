@@ -1,9 +1,9 @@
 package managers;
 
 import model.*;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 public class InMemoryTaskManager implements TaskManager {
     private final HashMap<Integer, Task> tasks = new HashMap<>();
@@ -110,6 +110,9 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public int createSubtask(Subtask subtask) {
+        if (subtask.getId() == subtask.getEpicId()) {
+            throw new IllegalArgumentException("Подзадача не может быть своим же эпиком");
+        }
         if (!epics.containsKey(subtask.getEpicId())) {
             return -1;
         }
