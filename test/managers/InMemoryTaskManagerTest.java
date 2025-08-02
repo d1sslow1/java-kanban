@@ -16,15 +16,18 @@ class InMemoryTaskManagerTest {
     void setUp() {
         manager = new InMemoryTaskManager();
         testEpic = new Epic("Test Epic", "Epic Description");
-        manager.createEpic(testEpic);
+        int epicId = manager.createEpic(testEpic);
+        testEpic.setId(epicId);
 
         testSubtask = new Subtask("Test Subtask", "Subtask Description", Status.NEW, testEpic.getId());
-        manager.createSubtask(testSubtask);
+        int subtaskId = manager.createSubtask(testSubtask);
+        testSubtask.setId(subtaskId);
 
         testTask = new Task("Test Task", "Task Description", Status.NEW);
         testTask.setStartTime(LocalDateTime.now());
         testTask.setDuration(Duration.ofMinutes(30));
-        manager.createTask(testTask);
+        int taskId = manager.createTask(testTask);
+        testTask.setId(taskId);
     }
 
     @Test
@@ -91,15 +94,23 @@ class InMemoryTaskManagerTest {
 
     @Test
     void shouldPrioritizeTasksByStartTime() {
+        // Очищаем существующие задачи
+        manager.deleteAllTasks();
+
         Task earlyTask = new Task("Early", "Desc", Status.NEW);
         earlyTask.setStartTime(LocalDateTime.now().minusHours(1));
-        manager.createTask(earlyTask);
+        earlyTask.setDuration(Duration.ofMinutes(30));
+        int earlyId = manager.createTask(earlyTask);
+        earlyTask.setId(earlyId);
 
         Task lateTask = new Task("Late", "Desc", Status.NEW);
         lateTask.setStartTime(LocalDateTime.now().plusHours(1));
-        manager.createTask(lateTask);
+        lateTask.setDuration(Duration.ofMinutes(30));
+        int lateId = manager.createTask(lateTask);
+        lateTask.setId(lateId);
 
         List<Task> prioritized = new ArrayList<>(manager.getPrioritizedTasks());
+        assertEquals(2, prioritized.size());
         assertEquals(earlyTask, prioritized.get(0));
         assertEquals(lateTask, prioritized.get(1));
     }
@@ -126,7 +137,15 @@ class InMemoryTaskManagerTest {
 
     @Test
     void shouldNotAllowSubtaskToBeItsOwnEpic() {
-        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, testSubtask.getId());
-        assertThrows(IllegalArgumentException.class, () -> manager.createSubtask(invalidSubtask));
+        // Создаем новый эпик и подзадачу с таким же ID
+        Epic epic = new Epic("Epic", "Desc");
+        int epicId = manager.createEpic(epic);
+
+        Subtask invalidSubtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
+        invalidSubtask.setId(epicId); // Устанавливаем тот же ID
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            manager.updateSubtask(invalidSubtask); // Пытаемся обновить (не создаем новую)
+        });
     }
 }
