@@ -39,12 +39,14 @@ class InMemoryTaskManagerTest {
         Task task1 = new Task("Task 1", "Desc", Status.NEW);
         task1.setStartTime(LocalDateTime.now().plusHours(1));
         task1.setDuration(Duration.ofMinutes(30));
-        manager.createTask(task1);
+        int task1Id = manager.createTask(task1);
+        task1.setId(task1Id);
 
         Task task2 = new Task("Task 2", "Desc", Status.NEW);
         task2.setStartTime(LocalDateTime.now().plusHours(2));
         task2.setDuration(Duration.ofMinutes(30));
-        manager.createTask(task2);
+        int task2Id = manager.createTask(task2);
+        task2.setId(task2Id);
 
         List<Task> prioritized = new ArrayList<>(manager.getPrioritizedTasks());
         assertEquals(2, prioritized.size());
@@ -56,13 +58,12 @@ class InMemoryTaskManagerTest {
     void shouldNotAllowSubtaskToBeItsOwnEpic() {
         Epic epic = new Epic("Test Epic", "Desc");
         int epicId = manager.createEpic(epic);
+        epic.setId(epicId);
 
         Subtask subtask = new Subtask("Invalid", "Desc", Status.NEW, epicId);
         subtask.setId(epicId);
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            manager.updateSubtask(subtask);
-        });
+        assertThrows(IllegalArgumentException.class, () -> manager.updateSubtask(subtask), "Подзадача не может быть своим же эпиком");
     }
 
     @Test
