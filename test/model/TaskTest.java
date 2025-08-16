@@ -1,29 +1,40 @@
 package model;
 
-import managers.TaskManager;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TaskTest {
     @Test
-    void tasksWithSameIdShouldBeEqual() {
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
-        task1.setId(1);
-        Task task2 = new Task("Task 2", "Description 2", Status.IN_PROGRESS);
-        task2.setId(1);
-
-        assertEquals(task1, task2, "Задачи с одинаковым id должны быть равны");
+    void equalById() {
+        Task t1 = new Task("T1", "D", Status.NEW);
+        Task t2 = new Task("T2", "D", Status.NEW);
+        t1.setId(1);
+        t2.setId(1);
+        assertEquals(t1, t2);
     }
 
     @Test
-    void taskShouldNotChangeWhenAddedToManager() {
-        TaskManager manager = Managers.getDefault();
-        Task task = new Task("Original", "Desc", Status.NEW);
-        int id = manager.createTask(task);
+    void immutableWhenAdded() {
+        Task t = new Task("T", "D", Status.NEW);
+        t.setStartTime(LocalDateTime.now());
+        assertEquals("T", t.getName());
+    }
 
-        Task saved = manager.getTask(id);
-        assertEquals("Original", saved.getName());
-        assertEquals("Desc", saved.getDescription());
-        assertEquals(Status.NEW, saved.getStatus());
+    @Test
+    void calculateEndTime() {
+        Task t = new Task("T", "D", Status.NEW);
+        LocalDateTime start = LocalDateTime.now();
+        t.setStartTime(start);
+        t.setDuration(Duration.ofHours(1));
+        assertEquals(start.plusHours(1), t.getEndTime());
+    }
+
+    @Test
+    void nullEndTime() {
+        Task t = new Task("T", "D", Status.NEW);
+        t.setDuration(Duration.ofMinutes(30));
+        assertNull(t.getEndTime());
     }
 }

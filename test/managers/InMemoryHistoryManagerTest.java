@@ -1,48 +1,83 @@
 package managers;
 
-
-import model.Epic;
-import model.Managers;
-import model.Status;
-import model.Task;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import java.util.List;
+import model.*;
+import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
 
 class InMemoryHistoryManagerTest {
     private HistoryManager historyManager;
-    private Task task;
-    private Epic epic;
+    private Task testTask;
+    private Epic testEpic;
+    private Subtask testSubtask;
 
     @BeforeEach
     void setUp() {
-        historyManager = Managers.getDefaultHistory();
-        task = new Task("Task", "Desc", Status.NEW);
-        task.setId(1);
-        epic = new Epic("Epic", "Epic Desc");
-        epic.setId(2);
+        historyManager = new InMemoryHistoryManager();
+
+
+        testTask = new Task("Проверить историю",
+                "Проверить сохранение задач в истории",
+                Status.NEW);
+        testTask.setId(1);
+
+        testEpic = new Epic("Рефакторинг кода",
+                "Провести рефакторинг всего проекта");
+        testEpic.setId(2);
+
+        testSubtask = new Subtask("Написать тесты",
+                "Покрыть код unit-тестами",
+                Status.IN_PROGRESS,
+                testEpic.getId());
+        testSubtask.setId(3);
     }
 
     @Test
-    void shouldAddTasksToHistory() {
-        historyManager.add(task);
-        historyManager.add(epic);
+    void add_shouldSaveDifferentTaskTypes() {
 
-        final List<Task> history = historyManager.getHistory();
-        assertEquals(2, history.size(), "History size incorrect");
-        assertEquals(task, history.get(0), "Tasks don't match");
+        historyManager.add(testTask);
+        historyManager.add(testEpic);
+        historyManager.add(testSubtask);
+
+        List<Task> history = historyManager.getHistory();
+
+        assertEquals(3, history.size(), "Не все задачи сохранились в истории");
+        assertTrue(history.contains(testTask), "Задача не найдена в истории");
+        assertTrue(history.contains(testEpic), "Эпик не найден в истории");
+        assertTrue(history.contains(testSubtask), "Подзадача не найдена в истории");
     }
 
     @Test
-    void shouldNotExceedMaxSize() {
-        for (int i = 0; i < 15; i++) {
-            Task t = new Task("Task" + i, "Desc", Status.NEW);
-            t.setId(i);
-            historyManager.add(t);
-        }
+    void remove_shouldDeleteTaskFromHistory() {
+        historyManager.add(testTask);
+        historyManager.add(testEpic);
 
-        assertEquals(10, historyManager.getHistory().size(),
-                "History should be limited to 10 items");
+
+        historyManager.remove(testTask.getId());
+
+        List<Task> history = historyManager.getHistory();
+
+        assertEquals(1, history.size(), "Неверное количество задач после удаления");
+        assertFalse(history.contains(testTask), "Задача не была удалена");
+        assertTrue(history.contains(testEpic), "Эпик не должен был быть удален");
+    }
+
+    @Test
+    void getHistory_shouldReturnEmptyListForEmptyHistory() {
+        List<Task> history = historyManager.getHistory();
+
+        assertTrue(history.isEmpty(), "История должна быть пустой");
+    }
+
+    @Test
+    void add_shouldNotContainDuplicates() {
+        // Добавляем задачу 3 раза
+        historyManager.add(testTask);
+        historyManager.add(testTask);
+        historyManager.add(testTask);
+
+        List<Task> history = historyManager.getHistory();
+
+        assertEquals(1, history.size(), "Дубликаты не должны сохраняться");
     }
 }
